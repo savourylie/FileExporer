@@ -8,13 +8,12 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.text.format.Formatter
+import android.text.format.Formatter.formatShortFileSize
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -32,28 +31,21 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
-class HomeFragment: Fragment(), OnFileSelectedListener {
+
+class CategorizedFragment: Fragment(), OnFileSelectedListener {
 
     val TAG = "Dev/" + javaClass.simpleName
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var fileAdapter: FileAdapter
     private lateinit var fileList: List<File>
-
-    private lateinit var linearImage: LinearLayout
-    private lateinit var linearVideo: LinearLayout
-    private lateinit var linearMusic: LinearLayout
-    private lateinit var linearDocs: LinearLayout
-    private lateinit var linearDownload: LinearLayout
-    private lateinit var linearApk: LinearLayout
-
-
     lateinit var storage: File
+
     var data = ""
     val items = arrayOf("Details", "Rename", "Delete", "Share")
+    private lateinit var path: File
 
     lateinit var root: View
-
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -61,92 +53,14 @@ class HomeFragment: Fragment(), OnFileSelectedListener {
         savedInstanceState: Bundle?
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
+        Log.d(TAG, "onCreateView")
+        root = inflater.inflate(R.layout.fragment_categorized, container, false)
 
-        root = inflater.inflate(R.layout.fragment_home, container, false)
-
-        linearImage = root.findViewById<LinearLayout>(R.id.linear_image)
-        linearVideo = root.findViewById<LinearLayout>(R.id.linear_video)
-        linearMusic = root.findViewById<LinearLayout>(R.id.linear_music)
-        linearDocs = root.findViewById<LinearLayout>(R.id.linear_document)
-        linearDownload = root.findViewById<LinearLayout>(R.id.linear_download)
-        linearApk = root.findViewById<LinearLayout>(R.id.linear_apk)
-
-        linearImage.setOnClickListener {
-            val args = Bundle()
-            args.putString("fileType", "image")
-            val categorizedFragment = CategorizedFragment()
-            categorizedFragment.arguments = args
-
-            parentFragmentManager
-                .beginTransaction()
-                .add(R.id.fragment_container, categorizedFragment)
-                .addToBackStack(null)
-                .commit()
-        }
-
-        linearVideo.setOnClickListener {
-            val args = Bundle()
-            args.putString("fileType", "video")
-            val categorizedFragment = CategorizedFragment()
-            categorizedFragment.arguments = args
-
-            parentFragmentManager
-                .beginTransaction()
-                .add(R.id.fragment_container, categorizedFragment)
-                .addToBackStack(null)
-                .commit()
-        }
-
-        linearMusic.setOnClickListener {
-            val args = Bundle()
-            args.putString("fileType", "music")
-            val categorizedFragment = CategorizedFragment()
-            categorizedFragment.arguments = args
-
-            parentFragmentManager
-                .beginTransaction()
-                .add(R.id.fragment_container, categorizedFragment)
-                .addToBackStack(null)
-                .commit()
-        }
-
-        linearDocs.setOnClickListener {
-            val args = Bundle()
-            args.putString("fileType", "doc")
-            val categorizedFragment = CategorizedFragment()
-            categorizedFragment.arguments = args
-
-            parentFragmentManager
-                .beginTransaction()
-                .add(R.id.fragment_container, categorizedFragment)
-                .addToBackStack(null)
-                .commit()
-        }
-
-        linearDownload.setOnClickListener {
-            val args = Bundle()
-            args.putString("fileType", "download")
-            val categorizedFragment = CategorizedFragment()
-            categorizedFragment.arguments = args
-
-            parentFragmentManager
-                .beginTransaction()
-                .add(R.id.fragment_container, categorizedFragment)
-                .addToBackStack(null)
-                .commit()
-        }
-
-        linearApk.setOnClickListener {
-            val args = Bundle()
-            args.putString("fileType", "apk")
-            val categorizedFragment = CategorizedFragment()
-            categorizedFragment.arguments = args
-
-            parentFragmentManager
-                .beginTransaction()
-                .add(R.id.fragment_container, categorizedFragment)
-                .addToBackStack(null)
-                .commit()
+        val bundle = this.arguments
+        if (bundle!!.getString("fileType") == "download") {
+            path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        } else {
+            path = Environment.getExternalStorageDirectory()
         }
 
         runtimePermission()
@@ -174,7 +88,6 @@ class HomeFragment: Fragment(), OnFileSelectedListener {
             }).check()
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     fun findFiles(file: File): ArrayList<File> {
         Log.d(TAG, Throwable().stackTrace[0].methodName)
 
@@ -186,33 +99,71 @@ class HomeFragment: Fragment(), OnFileSelectedListener {
             for (singleFile in files) {
                 if (singleFile.isDirectory && !singleFile.isHidden) {
                     arrayList.addAll(findFiles(singleFile))
-                } else if (
-                    singleFile.name.lowercase(Locale.getDefault()).endsWith(".jpeg") ||
-                    singleFile.name.lowercase(Locale.getDefault()).endsWith(".jpg") ||
-                    singleFile.name.lowercase(Locale.getDefault()).endsWith(".png") ||
-                    singleFile.name.lowercase(Locale.getDefault()).endsWith(".mp3") ||
-                    singleFile.name.lowercase(Locale.getDefault()).endsWith(".wav") ||
-                    singleFile.name.lowercase(Locale.getDefault()).endsWith(".mp4") ||
-                    singleFile.name.lowercase(Locale.getDefault()).endsWith(".pdf") ||
-                    singleFile.name.lowercase(Locale.getDefault()).endsWith(".doc") ||
-                    singleFile.name.lowercase(Locale.getDefault()).endsWith(".epub") ||
-                    singleFile.name.toLowerCase().endsWith(".apk")) {
-                        arrayList.add(singleFile)
+                } else {
+                    when (arguments!!.getString("fileType")) {
+                        "image" -> {
+                            if (singleFile.name.lowercase(Locale.getDefault()).endsWith(".jpeg") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".jpg") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".png")) {
+                                arrayList.add(singleFile)
+                            }
+                        }
+
+                        "video" -> {
+                            if (singleFile.name.lowercase(Locale.getDefault()).endsWith(".mp4")) {
+                                arrayList.add(singleFile)
+                            }
+                        }
+
+                        "music" -> {
+                            if (singleFile.name.lowercase(Locale.getDefault()).endsWith(".mp3") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".wav")) {
+                                arrayList.add(singleFile)
+                            }
+                        }
+
+                        "docs" -> {
+                            if (singleFile.name.lowercase(Locale.getDefault()).endsWith(".pdf") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".doc") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".epub")) {
+                                arrayList.add(singleFile)
+                            }
+                        }
+
+                        "apk" -> {
+                            if (singleFile.name.lowercase(Locale.getDefault()).endsWith(".apk")) {
+                                arrayList.add(singleFile)
+                            }
+                        }
+
+                        "download" -> {
+                            if (singleFile.name.lowercase(Locale.getDefault()).endsWith(".jpeg") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".jpg") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".png") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".mp3") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".wav") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".mp4") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".pdf") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".doc") ||
+                                singleFile.name.lowercase(Locale.getDefault()).endsWith(".epub") ||
+                                singleFile.name.toLowerCase().endsWith(".apk")) {
+
+                                    arrayList.add(singleFile)
+                            }
+                        }
+                    }
                 }
             }
         }
-
-        arrayList.sortWith(Comparator.comparing(File::lastModified).reversed())
-
         return arrayList
     }
 
     private fun displayFiles() {
-        recyclerView = root.findViewById(R.id.recycler_recent)
+        recyclerView = root.findViewById(R.id.recycler_internal)
         recyclerView.setHasFixedSize(true)
-        recyclerView.layoutManager = GridLayoutManager(context, 3)
+        recyclerView.layoutManager = GridLayoutManager(context, 1)
         fileList = ArrayList()
-        (fileList as ArrayList<File>).addAll(findFiles(Environment.getExternalStorageDirectory()))
+        (fileList as ArrayList<File>).addAll(findFiles(path))
         fileAdapter = FileAdapter(requireContext(), fileList, this)
         recyclerView.adapter = fileAdapter
     }
@@ -221,7 +172,7 @@ class HomeFragment: Fragment(), OnFileSelectedListener {
         if (file.isDirectory) {
             val bundle: Bundle = Bundle()
             bundle.putString("path", file.absolutePath)
-            val internalFragment = InternalFragment()
+            val internalFragment = CategorizedFragment()
             internalFragment.arguments = bundle
             fragmentManager?.beginTransaction()?.replace(R.id.fragment_container, internalFragment)
                 ?.addToBackStack(null)
@@ -259,7 +210,7 @@ class HomeFragment: Fragment(), OnFileSelectedListener {
 
                     val formattedDate = formatter.format(lastModified)
                     details.text = "File Name " + file.name + "\n" +
-                            "Size: " + Formatter.formatShortFileSize(context, file.length()) + "\n" +
+                            "Size: " + formatShortFileSize(context, file.length()) + "\n" +
                             "Path: " + file.absolutePath + "\n" +
                             "Last Modified: " + formattedDate
 

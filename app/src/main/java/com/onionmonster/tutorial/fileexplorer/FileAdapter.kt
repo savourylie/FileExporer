@@ -3,12 +3,16 @@ package com.onionmonster.tutorial.fileexplorer
 import android.content.Context
 import android.text.format.Formatter
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import java.io.File
 import java.util.*
 
-class FileAdapter(private val context: Context, private val file: List<File>): RecyclerView.Adapter<FileViewHolder>() {
+class FileAdapter(private val context: Context,
+                  private val file: List<File>,
+                  private val listener: OnFileSelectedListener
+                  ): RecyclerView.Adapter<FileViewHolder>() {
     val TAG = "Dev/" + javaClass.simpleName
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileViewHolder {
@@ -61,6 +65,15 @@ class FileAdapter(private val context: Context, private val file: List<File>): R
             holder.imgFile.setImageResource(R.drawable.epub_wrapper)
         } else {
             holder.imgFile.setImageResource(R.drawable.folder_wrapper)
+        }
+
+        holder.container.setOnClickListener {
+            listener.onFileClicked(file[position])
+        }
+
+        holder.container.setOnLongClickListener {
+            listener.onFileLongClicked(file[position], position)
+            true
         }
     }
 
